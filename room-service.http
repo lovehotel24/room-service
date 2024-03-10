@@ -1,0 +1,69 @@
+############################################
+### room type
+############################################
+
+### get all room type
+GET http://localhost:8082/v1/roomtype
+
+### create a room type
+POST http://localhost:8082/v1/roomtype
+Content-Type: application/json
+
+{
+  "name": "double",
+  "description": "basic room",
+  "photo": [
+    "https://www.a.com",
+    "https://www.b.com"
+  ],
+  "price": 1.14
+}
+
+### get room type by id
+GET http://localhost:8082/v1/roomtype/812a6b86-d920-11ee-9e1f-4a29f78ba46e
+
+### update room type by id
+PUT http://localhost:8082/v1/roomtype/812a6b86-d920-11ee-9e1f-4a29f78ba46e
+Content-Type: application/json
+
+{
+  "photo": [
+    "https://www.c.com",
+    "https://www.f.com"
+  ],
+  "price": 2.6
+}
+
+### delete room type by id
+DELETE http://localhost:8082/v1/roomtype/812a6b86-d920-11ee-9e1f-4a29f78ba46e
+
+############################################
+### room
+############################################
+
+### get all room
+GET http://localhost:8082/v1/room
+
+### create a room
+POST http://localhost:8082/v1/room
+Content-Type: application/json
+
+{
+  "roomTypeId": "479c4686-d921-11ee-9e1f-4a29f78ba46e",
+  "number": "101",
+  "status": "available"
+}
+
+### get room by id
+GET http://localhost:8082/v1/room/066ed601-a4e7-4fc3-a654-a6060c570e4a
+
+### update room by id
+PUT http://localhost:8082/v1/room/066ed601-a4e7-4fc3-a654-a6060c570e4a
+Content-Type: application/json
+
+{
+  "status": "unavailable"
+}
+
+### delete room by id
+DELETE http://localhost:8082/v1/room/066ed601-a4e7-4fc3-a654-a6060c570e4a

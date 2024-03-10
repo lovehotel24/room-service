@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
@@ -22,6 +23,19 @@ import (
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+const (
+	OnlyAdminScopes = "onlyAdmin.Scopes"
+)
+
+// Error defines model for Error.
+type Error struct {
+	// Code Error code
+	Code int32 `json:"code"`
+
+	// Message Error message
+	Message string `json:"message"`
+}
 
 // Room defines model for Room.
 type Room = models.Room
@@ -38,15 +52,6 @@ type RoomType = models.RoomType
 type RoomTypeId struct {
 	Id *openapi_types.UUID `json:"id,omitempty"`
 }
-
-// ErrorBadRequest defines model for ErrorBadRequest.
-type ErrorBadRequest interface{}
-
-// ErrorDefault defines model for ErrorDefault.
-type ErrorDefault interface{}
-
-// ErrorNotFound defines model for ErrorNotFound.
-type ErrorNotFound interface{}
 
 // GetAllRoomParams defines parameters for GetAllRoom.
 type GetAllRoomParams struct {
@@ -84,6 +89,11 @@ type CreateRoomTypeParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// PostV1RoomtypeUploadMultipartBody defines parameters for PostV1RoomtypeUpload.
+type PostV1RoomtypeUploadMultipartBody struct {
+	Photos *[]openapi_types.File `json:"photos,omitempty"`
+}
+
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = Room
 
@@ -92,6 +102,9 @@ type UpdateRoomByIdJSONRequestBody = Room
 
 // CreateRoomTypeJSONRequestBody defines body for CreateRoomType for application/json ContentType.
 type CreateRoomTypeJSONRequestBody = RoomType
+
+// PostV1RoomtypeUploadMultipartRequestBody defines body for PostV1RoomtypeUpload for multipart/form-data ContentType.
+type PostV1RoomtypeUploadMultipartRequestBody PostV1RoomtypeUploadMultipartBody
 
 // UpdateRoomTypeByIdJSONRequestBody defines body for UpdateRoomTypeById for application/json ContentType.
 type UpdateRoomTypeByIdJSONRequestBody = RoomType
@@ -119,6 +132,9 @@ type ServerInterface interface {
 	// Create a new room type
 	// (POST /v1/roomtype)
 	CreateRoomType(ctx echo.Context, params CreateRoomTypeParams) error
+
+	// (POST /v1/roomtype/upload)
+	PostV1RoomtypeUpload(ctx echo.Context) error
 	// Delete Room Type By RoomType Id
 	// (DELETE /v1/roomtype/{RoomTypeId})
 	DeleteRoomTypeById(ctx echo.Context, roomTypeId string) error
@@ -262,6 +278,8 @@ func (w *ServerInterfaceWrapper) GetAllRoomType(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) CreateRoomType(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(OnlyAdminScopes, []string{})
+
 	// Parameter object where we will unmarshal all parameters from the context
 	var params CreateRoomTypeParams
 	// ------------- Optional query parameter "offset" -------------
@@ -280,6 +298,15 @@ func (w *ServerInterfaceWrapper) CreateRoomType(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateRoomType(ctx, params)
+	return err
+}
+
+// PostV1RoomtypeUpload converts echo context to params.
+func (w *ServerInterfaceWrapper) PostV1RoomtypeUpload(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostV1RoomtypeUpload(ctx)
 	return err
 }
 
@@ -366,17 +393,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/v1/room/:RoomId", wrapper.UpdateRoomById)
 	router.GET(baseURL+"/v1/roomtype", wrapper.GetAllRoomType)
 	router.POST(baseURL+"/v1/roomtype", wrapper.CreateRoomType)
+	router.POST(baseURL+"/v1/roomtype/upload", wrapper.PostV1RoomtypeUpload)
 	router.DELETE(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.DeleteRoomTypeById)
 	router.GET(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.GetRoomTypeById)
 	router.PUT(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.UpdateRoomTypeById)
 
 }
-
-type ErrorBadRequestJSONResponse interface{}
-
-type ErrorDefaultJSONResponse interface{}
-
-type ErrorNotFoundJSONResponse interface{}
 
 type GetAllRoomRequestObject struct {
 	Params GetAllRoomParams
@@ -396,7 +418,7 @@ func (response GetAllRoom200JSONResponse) VisitGetAllRoomResponse(w http.Respons
 }
 
 type GetAllRoomdefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -425,7 +447,7 @@ func (response CreateRoom201JSONResponse) VisitCreateRoomResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateRoom400JSONResponse struct{ ErrorBadRequestJSONResponse }
+type CreateRoom400JSONResponse Error
 
 func (response CreateRoom400JSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -435,7 +457,7 @@ func (response CreateRoom400JSONResponse) VisitCreateRoomResponse(w http.Respons
 }
 
 type CreateRoomdefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -462,7 +484,7 @@ func (response DeleteRoomById204Response) VisitDeleteRoomByIdResponse(w http.Res
 	return nil
 }
 
-type DeleteRoomById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type DeleteRoomById404JSONResponse Error
 
 func (response DeleteRoomById404JSONResponse) VisitDeleteRoomByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -472,7 +494,7 @@ func (response DeleteRoomById404JSONResponse) VisitDeleteRoomByIdResponse(w http
 }
 
 type DeleteRoomByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -500,7 +522,7 @@ func (response GetRoomById200JSONResponse) VisitGetRoomByIdResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRoomById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type GetRoomById404JSONResponse Error
 
 func (response GetRoomById404JSONResponse) VisitGetRoomByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -510,7 +532,7 @@ func (response GetRoomById404JSONResponse) VisitGetRoomByIdResponse(w http.Respo
 }
 
 type GetRoomByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -539,7 +561,7 @@ func (response UpdateRoomById200JSONResponse) VisitUpdateRoomByIdResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateRoomById400JSONResponse struct{ ErrorBadRequestJSONResponse }
+type UpdateRoomById400JSONResponse Error
 
 func (response UpdateRoomById400JSONResponse) VisitUpdateRoomByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -548,7 +570,7 @@ func (response UpdateRoomById400JSONResponse) VisitUpdateRoomByIdResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateRoomById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type UpdateRoomById404JSONResponse Error
 
 func (response UpdateRoomById404JSONResponse) VisitUpdateRoomByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -558,7 +580,7 @@ func (response UpdateRoomById404JSONResponse) VisitUpdateRoomByIdResponse(w http
 }
 
 type UpdateRoomByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -587,7 +609,7 @@ func (response GetAllRoomType200JSONResponse) VisitGetAllRoomTypeResponse(w http
 }
 
 type GetAllRoomTypedefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -616,7 +638,7 @@ func (response CreateRoomType201JSONResponse) VisitCreateRoomTypeResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateRoomType400JSONResponse struct{ ErrorBadRequestJSONResponse }
+type CreateRoomType400JSONResponse Error
 
 func (response CreateRoomType400JSONResponse) VisitCreateRoomTypeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -626,11 +648,51 @@ func (response CreateRoomType400JSONResponse) VisitCreateRoomTypeResponse(w http
 }
 
 type CreateRoomTypedefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
 func (response CreateRoomTypedefaultJSONResponse) VisitCreateRoomTypeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type PostV1RoomtypeUploadRequestObject struct {
+	Body *multipart.Reader
+}
+
+type PostV1RoomtypeUploadResponseObject interface {
+	VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error
+}
+
+type PostV1RoomtypeUpload201JSONResponse struct {
+	Url *[]string `json:"url,omitempty"`
+}
+
+func (response PostV1RoomtypeUpload201JSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostV1RoomtypeUpload400JSONResponse Error
+
+func (response PostV1RoomtypeUpload400JSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostV1RoomtypeUploaddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response PostV1RoomtypeUploaddefaultJSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -653,7 +715,7 @@ func (response DeleteRoomTypeById204Response) VisitDeleteRoomTypeByIdResponse(w 
 	return nil
 }
 
-type DeleteRoomTypeById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type DeleteRoomTypeById404JSONResponse Error
 
 func (response DeleteRoomTypeById404JSONResponse) VisitDeleteRoomTypeByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -663,7 +725,7 @@ func (response DeleteRoomTypeById404JSONResponse) VisitDeleteRoomTypeByIdRespons
 }
 
 type DeleteRoomTypeByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -691,7 +753,7 @@ func (response GetRoomTypeById200JSONResponse) VisitGetRoomTypeByIdResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRoomTypeById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type GetRoomTypeById404JSONResponse Error
 
 func (response GetRoomTypeById404JSONResponse) VisitGetRoomTypeByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -701,7 +763,7 @@ func (response GetRoomTypeById404JSONResponse) VisitGetRoomTypeByIdResponse(w ht
 }
 
 type GetRoomTypeByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -730,7 +792,7 @@ func (response UpdateRoomTypeById200JSONResponse) VisitUpdateRoomTypeByIdRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateRoomTypeById400JSONResponse struct{ ErrorBadRequestJSONResponse }
+type UpdateRoomTypeById400JSONResponse Error
 
 func (response UpdateRoomTypeById400JSONResponse) VisitUpdateRoomTypeByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -739,7 +801,7 @@ func (response UpdateRoomTypeById400JSONResponse) VisitUpdateRoomTypeByIdRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateRoomTypeById404JSONResponse struct{ ErrorNotFoundJSONResponse }
+type UpdateRoomTypeById404JSONResponse Error
 
 func (response UpdateRoomTypeById404JSONResponse) VisitUpdateRoomTypeByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -749,7 +811,7 @@ func (response UpdateRoomTypeById404JSONResponse) VisitUpdateRoomTypeByIdRespons
 }
 
 type UpdateRoomTypeByIddefaultJSONResponse struct {
-	Body       interface{}
+	Body       Error
 	StatusCode int
 }
 
@@ -783,6 +845,9 @@ type StrictServerInterface interface {
 	// Create a new room type
 	// (POST /v1/roomtype)
 	CreateRoomType(ctx context.Context, request CreateRoomTypeRequestObject) (CreateRoomTypeResponseObject, error)
+
+	// (POST /v1/roomtype/upload)
+	PostV1RoomtypeUpload(ctx context.Context, request PostV1RoomtypeUploadRequestObject) (PostV1RoomtypeUploadResponseObject, error)
 	// Delete Room Type By RoomType Id
 	// (DELETE /v1/roomtype/{RoomTypeId})
 	DeleteRoomTypeById(ctx context.Context, request DeleteRoomTypeByIdRequestObject) (DeleteRoomTypeByIdResponseObject, error)
@@ -999,6 +1064,35 @@ func (sh *strictHandler) CreateRoomType(ctx echo.Context, params CreateRoomTypeP
 	return nil
 }
 
+// PostV1RoomtypeUpload operation middleware
+func (sh *strictHandler) PostV1RoomtypeUpload(ctx echo.Context) error {
+	var request PostV1RoomtypeUploadRequestObject
+
+	if reader, err := ctx.Request().MultipartReader(); err != nil {
+		return err
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PostV1RoomtypeUpload(ctx.Request().Context(), request.(PostV1RoomtypeUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostV1RoomtypeUpload")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PostV1RoomtypeUploadResponseObject); ok {
+		return validResponse.VisitPostV1RoomtypeUploadResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // DeleteRoomTypeById operation middleware
 func (sh *strictHandler) DeleteRoomTypeById(ctx echo.Context, roomTypeId string) error {
 	var request DeleteRoomTypeByIdRequestObject
@@ -1083,25 +1177,27 @@ func (sh *strictHandler) UpdateRoomTypeById(ctx echo.Context, roomTypeId string)
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"HgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

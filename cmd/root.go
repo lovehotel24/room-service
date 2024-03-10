@@ -44,7 +44,7 @@ func init() {
 	rootCmd.Flags().String("pg-port", "5432", "postgres server port")
 	rootCmd.Flags().String("pg-db", "postgres", "postgres database name")
 	rootCmd.Flags().Bool("pg-ssl", false, "postgres server ssl mode on or not")
-	rootCmd.Flags().String("port", "8081", "port for test HTTP server")
+	rootCmd.Flags().String("port", "8082", "port for test HTTP server")
 	rootCmd.Flags().String("grpc-port", "50051", "booking service grpc port")
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
@@ -108,9 +108,16 @@ func runCommand(cmd *cobra.Command, args []string) {
 	// OpenAPI schema.
 	e.Use(middleware.OapiRequestValidator(swagger))
 
-	// We now register our petStore above as the handler for the interface
-	routers.RegisterHandlers(e, api)
+	wapper := routers.ServerInterfaceWrapper{Handler: api}
+	e.GET("/v1/roomtype", wapper.GetAllRoomType, testMiddleware)
 
 	// And we serve HTTP until the world ends.
-	e.Logger.Fatal(e.Start(net.JoinHostPort("0.0.0.0", viper.GetString("port"))))
+	log.Fatalln(e.Start(net.JoinHostPort("0.0.0.0", viper.GetString("port"))))
+}
+
+func testMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.Info("test middleware")
+		return next(c)
+	}
 }

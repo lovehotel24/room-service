@@ -7,6 +7,7 @@ info:
   
 servers:
   - url: 'https://localhost:8082'
+
 paths:
   /v1/roomtype:
     post:
@@ -26,9 +27,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/RoomTypeId"
         "400":
-          $ref: '#/components/responses/ErrorBadRequest'
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - onlyAdmin: []
     parameters:
       - name: offset
         in: query
@@ -53,7 +64,11 @@ paths:
                 items:
                   $ref: "#/components/schemas/RoomType"
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/roomtype/{RoomTypeId}:
     parameters:
       - name: RoomTypeId
@@ -74,9 +89,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/RoomType"
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room type not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       summary: "Delete Room Type By RoomType Id"
       operationId: "deleteRoomTypeById"
@@ -84,9 +107,17 @@ paths:
         "204":
           description: Room type deleted successfully
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room type not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       summary: "Update a room type by ID"
       operationId: "updateRoomTypeById"
@@ -103,11 +134,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/RoomTypeId'
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room type not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         "400":
-          $ref: '#/components/responses/ErrorBadRequest'
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-            $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/roomtype/upload:
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              additionalProperties: false
+              properties:
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+            encoding:
+              photos:
+                contentType: image/png, image/jpeg
+      responses:
+        "201":
+          description: "Photo uploaded successfully"
+          content:
+            application/json:
+              schema:
+                properties:
+                  url:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/room:
     post:
       summary: "Create a new room"
@@ -126,9 +208,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/RoomId"
         "400":
-          $ref: '#/components/responses/ErrorBadRequest'
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     parameters:
       - name: offset
         in: query
@@ -153,7 +243,11 @@ paths:
                 items:
                   $ref: "#/components/schemas/Room"
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/room/{RoomId}:
     parameters:
       - name: RoomId
@@ -174,9 +268,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/Room"
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       summary: "Delete Room By Room Id"
       operationId: "deleteRoomById"
@@ -184,9 +286,17 @@ paths:
         "204":
           description: Room deleted successfully
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-          $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       summary: "Update a room by ID"
       operationId: "updateRoomById"
@@ -203,11 +313,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/RoomId'
         "404":
-          $ref: '#/components/responses/ErrorNotFound'
+          description: "Room not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         "400":
-          $ref: '#/components/responses/ErrorBadRequest'
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
-            $ref: '#/components/responses/ErrorDefault'
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
@@ -237,7 +359,7 @@ components:
           type: "string"
         description:
           type: "string"
-        photo:
+        images:
           type: "array"
           items:
             type: "string"
@@ -260,31 +382,15 @@ components:
           format: "uuid"
         status:
           type: "string"
-  responses:
-    ErrorNotFound:
-      description: Resource not found
-      content:
-        application/json:
-          example: |
-            {
-              "status": 404,
-              "message": "Resource not found"
-            }
-    ErrorBadRequest:
-      description: Bad request, invalid input data
-      content:
-        application/json:
-          example: |
-            {
-              "status": 400,
-              "message": "Invalid input data"
-            }
-    ErrorDefault:
-      description: An unexpected error occurred
-      content:
-        application/json:
-          example: |
-            {
-              "status": 500,
-              "message": "Internal Server Error"
-            }
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: Error code
+        message:
+          type: string
+          description: Error message

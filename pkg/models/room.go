@@ -2,19 +2,17 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
-
-type Photo []string
 
 type RoomType struct {
 	gorm.Model
-	Id          uuid.UUID `json:"id" gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Photo       Photo     `json:"photo" gorm:"type:text"";`
-	Price       float64   `json:"price"`
+	Id          uuid.UUID      `json:"id" gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+	Name        string         `json:"name" form:"name"`
+	Description string         `json:"description" form:"description"`
+	ImageUrls   pq.StringArray `json:"images" form:"images" gorm:"type:text[]"`
+	Price       float64        `json:"price" form:"price"`
 }
 
 func (rt *RoomType) BeforeCreate(tx *gorm.DB) (err error) {
@@ -41,18 +39,19 @@ func (r *Room) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func (Photo) GormDataType() string {
-	return "text"
-}
-func (Photo) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-
-	// returns different database type based on driver name
-	switch db.Dialector.Name() {
-	case "mysql", "sqlite":
-		return "text"
-	}
-	return ""
-}
+//
+//func (Photo) GormDataType() string {
+//	return "text"
+//}
+//func (Photo) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+//
+//	// returns different database type based on driver name
+//	switch db.Dialector.Name() {
+//	case "mysql", "sqlite":
+//		return "text"
+//	}
+//	return ""
+//}
 
 //func (o *Photo) Scan(src any) error {
 //	bytes, ok := src.([]byte)

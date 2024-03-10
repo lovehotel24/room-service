@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -23,7 +24,8 @@ func (a API) GetAllRoom(ctx echo.Context, params routers.GetAllRoomParams) error
 	}
 
 	if err := a.DB.Limit(limit).Offset(offSet).Find(&rooms).Error; err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to get rooms: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("failed to get rooms. details: %s", err))
 	}
 
 	return ctx.JSON(http.StatusOK, rooms)
@@ -33,26 +35,38 @@ func (a API) CreateRoom(ctx echo.Context, params routers.CreateRoomParams) error
 	var room routers.Room
 
 	if err := ctx.Bind(&room); err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to bind room: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("invalid input data. details: %s", err))
 	}
+
+	if _, err := a.getRoomTypeById(room.RoomTypeId); err != nil {
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("room type with id %s does not exist. details: %s", room.RoomTypeId, err))
+	}
+
 	if err := a.DB.Create(&room).Error; err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to create room: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("failed to create room. details: %s", err))
 	}
+
+	a.Log.Infof("room created with id: %s", room.Id)
 	return ctx.JSON(http.StatusCreated, room.Id)
 }
 
 func (a API) DeleteRoomById(ctx echo.Context, roomId string) error {
 	var room routers.Room
 	if err := a.DB.Where("id = ?", roomId).Delete(&room).Error; err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to delete room: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("failed to delete room. details: %s", err))
 	}
+
+	a.Log.Infof("room deleted with id: %s", roomId)
 	return ctx.NoContent(http.StatusNoContent)
 }
 
 func (a API) GetRoomById(ctx echo.Context, roomId string) error {
 	room, err := a.getRoomById(roomId)
 	if err != nil {
-		return err
+		return sendError(ctx, http.StatusNotFound, fmt.Sprintf("room id: %s doesn't exist. details: %s", roomId, err))
 	}
 
 	return ctx.JSON(http.StatusOK, room)
@@ -61,13 +75,13 @@ func (a API) GetRoomById(ctx echo.Context, roomId string) error {
 func (a API) UpdateRoomById(ctx echo.Context, roomId string) error {
 	var requestRoom routers.Room
 	if err := ctx.Bind(&requestRoom); err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to bind room: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("invalid input data. details: %s", err))
 	}
 
 	room, err := a.getRoomById(roomId)
 	if err != nil {
-		a.Log.WithError(err).Errorf("failed to get room by id: %s", roomId)
-		return err
+		return sendError(ctx, http.StatusNotFound, fmt.Sprintf("room id: %s doesn't exist. details: %s", roomId, err))
 	}
 
 	if requestRoom.Number != "" {
@@ -83,19 +97,10 @@ func (a API) UpdateRoomById(ctx echo.Context, roomId string) error {
 	}
 
 	if err := a.DB.Save(&room).Error; err != nil {
-		return err
+		a.Log.WithError(err).Errorf("failed to update room: %s", err)
+		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("failed to update room. details: %s", err))
 	}
 
+	a.Log.Infof("room updated with id: %s", room.Id)
 	return ctx.JSON(http.StatusOK, room.Id)
-}
-
-func (a API) getRoomById(rId interface{}) (routers.Room, error) {
-	var rt routers.Room
-
-	if err := a.DB.Where("id = ?", rId).First(&rt).Error; err != nil {
-		a.Log.WithError(err).Errorf("failed to get room by id: %s", rId)
-		return routers.Room{}, err
-	}
-
-	return rt, nil
 }
