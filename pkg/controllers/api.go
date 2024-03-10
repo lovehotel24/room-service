@@ -13,6 +13,11 @@ type API struct {
 	Log *logrus.Logger
 }
 
+func (a API) PostV1RoomtypeUpload(ctx echo.Context) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewApp(db *gorm.DB, log *logrus.Logger) *API {
 	return &API{DB: db, Log: log}
 }
