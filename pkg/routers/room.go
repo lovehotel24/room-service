@@ -89,8 +89,8 @@ type CreateRoomTypeParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
-// PostV1RoomtypeUploadMultipartBody defines parameters for PostV1RoomtypeUpload.
-type PostV1RoomtypeUploadMultipartBody struct {
+// UploadRoomTypePhotosMultipartBody defines parameters for UploadRoomTypePhotos.
+type UploadRoomTypePhotosMultipartBody struct {
 	Photos *[]openapi_types.File `json:"photos,omitempty"`
 }
 
@@ -103,8 +103,8 @@ type UpdateRoomByIdJSONRequestBody = Room
 // CreateRoomTypeJSONRequestBody defines body for CreateRoomType for application/json ContentType.
 type CreateRoomTypeJSONRequestBody = RoomType
 
-// PostV1RoomtypeUploadMultipartRequestBody defines body for PostV1RoomtypeUpload for multipart/form-data ContentType.
-type PostV1RoomtypeUploadMultipartRequestBody PostV1RoomtypeUploadMultipartBody
+// UploadRoomTypePhotosMultipartRequestBody defines body for UploadRoomTypePhotos for multipart/form-data ContentType.
+type UploadRoomTypePhotosMultipartRequestBody UploadRoomTypePhotosMultipartBody
 
 // UpdateRoomTypeByIdJSONRequestBody defines body for UpdateRoomTypeById for application/json ContentType.
 type UpdateRoomTypeByIdJSONRequestBody = RoomType
@@ -132,9 +132,9 @@ type ServerInterface interface {
 	// Create a new room type
 	// (POST /v1/roomtype)
 	CreateRoomType(ctx echo.Context, params CreateRoomTypeParams) error
-
+	// Upload Room Type Photos
 	// (POST /v1/roomtype/upload)
-	PostV1RoomtypeUpload(ctx echo.Context) error
+	UploadRoomTypePhotos(ctx echo.Context) error
 	// Delete Room Type By RoomType Id
 	// (DELETE /v1/roomtype/{RoomTypeId})
 	DeleteRoomTypeById(ctx echo.Context, roomTypeId string) error
@@ -301,12 +301,12 @@ func (w *ServerInterfaceWrapper) CreateRoomType(ctx echo.Context) error {
 	return err
 }
 
-// PostV1RoomtypeUpload converts echo context to params.
-func (w *ServerInterfaceWrapper) PostV1RoomtypeUpload(ctx echo.Context) error {
+// UploadRoomTypePhotos converts echo context to params.
+func (w *ServerInterfaceWrapper) UploadRoomTypePhotos(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostV1RoomtypeUpload(ctx)
+	err = w.Handler.UploadRoomTypePhotos(ctx)
 	return err
 }
 
@@ -393,7 +393,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/v1/room/:RoomId", wrapper.UpdateRoomById)
 	router.GET(baseURL+"/v1/roomtype", wrapper.GetAllRoomType)
 	router.POST(baseURL+"/v1/roomtype", wrapper.CreateRoomType)
-	router.POST(baseURL+"/v1/roomtype/upload", wrapper.PostV1RoomtypeUpload)
+	router.POST(baseURL+"/v1/roomtype/upload", wrapper.UploadRoomTypePhotos)
 	router.DELETE(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.DeleteRoomTypeById)
 	router.GET(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.GetRoomTypeById)
 	router.PUT(baseURL+"/v1/roomtype/:RoomTypeId", wrapper.UpdateRoomTypeById)
@@ -659,40 +659,40 @@ func (response CreateRoomTypedefaultJSONResponse) VisitCreateRoomTypeResponse(w 
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type PostV1RoomtypeUploadRequestObject struct {
+type UploadRoomTypePhotosRequestObject struct {
 	Body *multipart.Reader
 }
 
-type PostV1RoomtypeUploadResponseObject interface {
-	VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error
+type UploadRoomTypePhotosResponseObject interface {
+	VisitUploadRoomTypePhotosResponse(w http.ResponseWriter) error
 }
 
-type PostV1RoomtypeUpload201JSONResponse struct {
+type UploadRoomTypePhotos201JSONResponse struct {
 	Url *[]string `json:"url,omitempty"`
 }
 
-func (response PostV1RoomtypeUpload201JSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
+func (response UploadRoomTypePhotos201JSONResponse) VisitUploadRoomTypePhotosResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostV1RoomtypeUpload400JSONResponse Error
+type UploadRoomTypePhotos400JSONResponse Error
 
-func (response PostV1RoomtypeUpload400JSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
+func (response UploadRoomTypePhotos400JSONResponse) VisitUploadRoomTypePhotosResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostV1RoomtypeUploaddefaultJSONResponse struct {
+type UploadRoomTypePhotosdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
 }
 
-func (response PostV1RoomtypeUploaddefaultJSONResponse) VisitPostV1RoomtypeUploadResponse(w http.ResponseWriter) error {
+func (response UploadRoomTypePhotosdefaultJSONResponse) VisitUploadRoomTypePhotosResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -845,9 +845,9 @@ type StrictServerInterface interface {
 	// Create a new room type
 	// (POST /v1/roomtype)
 	CreateRoomType(ctx context.Context, request CreateRoomTypeRequestObject) (CreateRoomTypeResponseObject, error)
-
+	// Upload Room Type Photos
 	// (POST /v1/roomtype/upload)
-	PostV1RoomtypeUpload(ctx context.Context, request PostV1RoomtypeUploadRequestObject) (PostV1RoomtypeUploadResponseObject, error)
+	UploadRoomTypePhotos(ctx context.Context, request UploadRoomTypePhotosRequestObject) (UploadRoomTypePhotosResponseObject, error)
 	// Delete Room Type By RoomType Id
 	// (DELETE /v1/roomtype/{RoomTypeId})
 	DeleteRoomTypeById(ctx context.Context, request DeleteRoomTypeByIdRequestObject) (DeleteRoomTypeByIdResponseObject, error)
@@ -1064,9 +1064,9 @@ func (sh *strictHandler) CreateRoomType(ctx echo.Context, params CreateRoomTypeP
 	return nil
 }
 
-// PostV1RoomtypeUpload operation middleware
-func (sh *strictHandler) PostV1RoomtypeUpload(ctx echo.Context) error {
-	var request PostV1RoomtypeUploadRequestObject
+// UploadRoomTypePhotos operation middleware
+func (sh *strictHandler) UploadRoomTypePhotos(ctx echo.Context) error {
+	var request UploadRoomTypePhotosRequestObject
 
 	if reader, err := ctx.Request().MultipartReader(); err != nil {
 		return err
@@ -1075,18 +1075,18 @@ func (sh *strictHandler) PostV1RoomtypeUpload(ctx echo.Context) error {
 	}
 
 	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostV1RoomtypeUpload(ctx.Request().Context(), request.(PostV1RoomtypeUploadRequestObject))
+		return sh.ssi.UploadRoomTypePhotos(ctx.Request().Context(), request.(UploadRoomTypePhotosRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostV1RoomtypeUpload")
+		handler = middleware(handler, "UploadRoomTypePhotos")
 	}
 
 	response, err := handler(ctx, request)
 
 	if err != nil {
 		return err
-	} else if validResponse, ok := response.(PostV1RoomtypeUploadResponseObject); ok {
-		return validResponse.VisitPostV1RoomtypeUploadResponse(ctx.Response())
+	} else if validResponse, ok := response.(UploadRoomTypePhotosResponseObject); ok {
+		return validResponse.VisitUploadRoomTypePhotosResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -1177,27 +1177,26 @@ func (sh *strictHandler) UpdateRoomTypeById(ctx echo.Context, roomTypeId string)
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYW0/jRhT+K6NpH504hHTF5g1K1UatVLRl+4J4mNjHybBzYy4pFvJ/r2bGudohhBI2",
-	"FbwQMz4+1+/c5hFnkispQFiDh4/YZFPgJDz+orXU/kFpqUBbCuE4kzn43xxMpqmyVAo8jMQovEtwITUn",
-	"Fg8xFfa0jxNsSwXxX5iAxlWCORhDJlsZzV8vPjVWUzHBVZVgDfeOasjx8AbXAufkt1WCv0jJm1rT3P9d",
-	"KOYczZvMEywcH0MwuvFKS8mvSwWj53EyllhnWjhVC2I5voPM4gQ/dCayUx9ymQMz3WDFypsO5Upq6/kJ",
-	"wj1hTaGIneIhnlA7deNuJnnK5Aym0gLrD1KvdMeAntEMUvVtkkb2QQvPIBrzAlc1rKgZXofDTZZrIW7x",
-	"7TOjQzmZ1Dpa4KaVVX1AtCZliGjwVguh0jRbfVOHfo/4BFt3xqim+m9xWgLvVWLlj6goZDP9vDBUK4IK",
-	"qdEfcgbot6imZ00tm1uG/op0OMEz0CYyOOn2uj3vX6lAEEXxEJ92e93T2gVB63R2Eiz2zxMIDvNGEa+D",
-	"txL/CvacsRrhGoySwkSD+71eLELCgghfEqUYzcK36Z2JAItVbA0oP2oo8BD/kC7rXVoXuzQIamDHO2nd",
-	"OX/+jsNZQRyze6nxlPRYZ1vEOQEPCjILOYKaJsHGcU50GZ2EzhlDc+0V0YSDBW3w8GYzrtdTQBHhSBYo",
-	"eAVZicw3qtAYCqkBGUu0pWLizzPJGGQW2SkgDcab6xGDh/jegS7xPK+wLAoD/uXS1s1iXyXblTFr2miw",
-	"TostkhjldIeg2wQraVrw9LMGYmGBp3sHxl7IvHy1GMYYrHcnqx1UDfievKrMUd4GnJCcWbA5R8ZlGRhT",
-	"OMZCQRzsmUEvgu4FyVHt52NKmYgDRJCAf5COMUsW5Sh9jC6tYllkYKEJpctw7gkvylHeLE+DLTU18msL",
-	"x+DwbgkaCGlRIZ3Ijyki0Z2hhqGLMv6OgobbGsN21/cOkM5tDeCdh8z3HRKyB41LNLp8Vu8ZXfpKH9pJ",
-	"rMLwQLgKowScZOP+ad7rfMrG0BmQ/ufO+KezT51xQQb9wTj7fFrk854QpqhkdbyqgbBadFt6xGIU8i3C",
-	"tQDrq8rJRlofrktUB4buE13BBTuPoyu88zyKkNtIpZV2ZOtVaseEXO8XbzMlB2H/60l5bsHHtPyMaXmB",
-	"rcPUwhiLt5+a6216W7XwnvoYn5d5BJnT1JYhT6Rg5XnOPeRubj2EnhiugyMbJS11ikkS7zJa4Xcljf37",
-	"5EtN/jVSPwVC7pilimibFlLzTk5s8ACITOa+63tJU2mlWfnuus4GTiaQKjFJUHy8UxBvTJaeJHlOvXKE",
-	"Xa3cvRSEGUg2rmOWYhYVdXE3M6aChAzdcWVVtQ4I+yXAulZOs33uzKoWYFx5w1CM3EdSVA1MPy7LyjO3",
-	"R0+83wYZytL3XyODGke/S3r3zhfK8Lx7qdwekd6But73XS6PN5ArG2ZQ8qVrZmxAr7dr1nPD6+6ba7A7",
-	"7JxVvQGyd81V73MBPd5cW99CV9Mtzn56Ns+2MEbgqbXKDNOUyYywqTR2eNY76+Pqtvo3AAD//7ZQ1mJL",
-	"HgAA",
+	"H4sIAAAAAAAC/+xYzW7jNhB+FYLtUbYcx13s6pY0RWu0QIs2ewpyoKSRzV1KZPjjRgj07gWHsmNbcpxk",
+	"46yL5BIrJDWcn2++mdEdzWSpZAWVNTS5oyabQ8nw8RetpfYPSksF2nLA5Uzm4H9zMJnmynJZ0SQcJrgX",
+	"0ULqklmaUF7Z0zGNqK0VhH9hBpo2ES3BGDbbKWi5vXrVWM2rGW2aiGq4cVxDTpMr2l64PH7dRPRvKcuu",
+	"1jz3f1eKOcfzrvCIVq5MAY3ubGkpy8tawfRxkoxl1pkeSc3qsEy/QGZpRG8HMzloF0uZgzBDtGJtZ8BL",
+	"JbX18ipW+oPtCcXsnCZ0xu3cpcNMlrGQC5hLC2I8ib3SAwN6wTOI1ddZHMSjFl5AMOYZrupY0Qq8xMVt",
+	"kRsh7vHtI6PDSzZrdbRQml5R7QLTmtUYUfRWz0Gleba+04b+CfFBW/fGqD31bXG6B96LxMov8aqQ3fTz",
+	"l5FWEVJITf6QCyC/BTW9aG7F0jLyTzhHI7oAbYKAk+FoOPL+lQoqpjhN6OlwNDxtXYBax4sTtNg/zwAd",
+	"5o1iXgdvJf0V7JkQLcI1GCUrEwwej0aBhCoLFb7JlBI8w3fjLyYALLDYBlB+1FDQhP4Q3/Nd3JJdjBd1",
+	"sOOdtOmcP3+nuFYwJ+yT1Hjo9sCzPde5Cm4VZBZyAu2ZiBpXlkzXwUnkTAiy1F4xzUqwoA1NrrbjejkH",
+	"EhBOZEHQK8RKYr5yRVIopAZiLNOWVzO/nkkhILPEzoFoMN5cjxia0BsHuqbLvKKyKAz4zXtbt8m+iXYr",
+	"Yza00WCdrnbcJHjJ91x0HVElTQ+eftbALKzwdOPA2HOZ1y8WwxCDzepktYOmA9+TF71zmvcBB5MzQ5tz",
+	"YlyWgTGFEwIJcfLEDHoWdM9ZTlo/H1PKBBwQRir4l+gQs2hFR/FdcGkTaFGAhS6ULnDdHzyvp3mXniY7",
+	"ODXI6wvH5PBuQQ0qaUkhXZUfU0SCO5HDyHkdfqeo4a7CsNv1owOkc18BeOMh83WHYfaQtCbTi0fVnumF",
+	"Z3osJ4GF4ZaVClsJOMnS8Wk+GnzIUhhM2PjTIP3p44dBWrDJeJJmn06LfFkTsIuK1turFgjrpNtTI1at",
+	"kC8RrgdYn1XOttL6cFWiOTB0H6gKDu08jqrwxvMoQG4rldbKkW1HqT0dcjtfvE6XjJf9rzvlpQXv3fIj",
+	"uuUVtg7DhSEWr981t9P0Lrbwnnpvn+/zCDKnua0xT2Ql6rO89JC7uvYQeqC5Rkd2KC12SkgWvmX0wu8z",
+	"7i/j9NdcWmkeBGHphOWKaRsXUpeDnFm26YvNbyYqSFynvdUHlJRXDNNoz3elvk8q34raTS2dFk/50NX0",
+	"RBNdR4K735G8VXu9U8K44VFGWph1wHp3zxePHAv94aeNhsg3338+RDWOfkjEaLWTIj7vnxZ3R2R0oHL2",
+	"fafG4w3k2uiISj53fgyV5eWGyLYheNlBcgN2h22gmldA9r6G6W1Olseba5vj5Xq6haZOL5bZhq0GnVur",
+	"TBLHQmZMzKWxycfRxzFtrpv/AgAA//8totc+JB4AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

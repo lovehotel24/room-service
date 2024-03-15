@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
-	middleware "github.com/oapi-codegen/echo-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,6 +44,11 @@ func init() {
 	rootCmd.Flags().Bool("pg-ssl", false, "postgres server ssl mode on or not")
 	rootCmd.Flags().String("port", "8082", "port for test HTTP server")
 	rootCmd.Flags().String("grpc-port", "50051", "booking service grpc port")
+	rootCmd.Flags().String("s3-url", "http://localhost:9000", "AWS S3 endpoint url")
+	rootCmd.Flags().String("region", "us-east-1", "AWS Region for S3")
+	rootCmd.Flags().String("bucket", "room", "AWS S3 bucket name for room photos")
+	rootCmd.Flags().String("access-key", "minio", "AWS access key id")
+	rootCmd.Flags().String("secret-key", "minioTopSecret", "AWS secret key id")
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.SetEnvPrefix("book")
@@ -57,7 +60,11 @@ func init() {
 	viper.BindPFlag("pg-ssl", rootCmd.Flags().Lookup("pg-ssl"))
 	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
 	viper.BindPFlag("grpc-port", rootCmd.Flags().Lookup("grpc-port"))
-	viper.BindEnv("gin_mode", "GIN_MODE")
+	viper.BindPFlag("s3-url", rootCmd.Flags().Lookup("s3-url"))
+	viper.BindPFlag("region", rootCmd.Flags().Lookup("region"))
+	viper.BindPFlag("bucket", rootCmd.Flags().Lookup("bucket"))
+	viper.BindPFlag("access-key", rootCmd.Flags().Lookup("access-key"))
+	viper.BindPFlag("secret-key", rootCmd.Flags().Lookup("secret-key"))
 	viper.AutomaticEnv()
 }
 
@@ -71,11 +78,11 @@ func runCommand(cmd *cobra.Command, args []string) {
 		WithName(viper.GetString("pg-db")).
 		WithSecure(viper.GetBool("pg-ssl"))
 
-	swagger, err := routers.GetSwagger()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
-		os.Exit(1)
-	}
+	//swagger, err := routers.GetSwagger()
+	//if err != nil {
+	//	fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
+	//	os.Exit(1)
+	//}
 
 	var log = logrus.New()
 	log.SetFormatter(&logrus.JSONFormatter{})
@@ -83,9 +90,8 @@ func runCommand(cmd *cobra.Command, args []string) {
 	log.SetReportCaller(true)
 	log.SetLevel(logrus.InfoLevel)
 
-	// Clear out the servers array in the swagger spec, that skips validating
-	// that server names match. We don't know how this thing will be run.
-	swagger.Servers = nil
+	//swagger.Servers = nil
+	//openapi3filter.RegisterBodyDecoder("multipart/form-data", openapi3filter.FileBodyDecoder)
 
 	db, err := configs.NewDB(dbConf)
 	if err != nil {
@@ -97,21 +103,22 @@ func runCommand(cmd *cobra.Command, args []string) {
 		log.WithError(err).Error("failed to migrate db schema")
 	}
 
-	// Create an instance of our handler which satisfies the generated interface
-	api := controllers.NewApp(db, log)
+	s3Client := configs.NewS3Client(viper.GetString("s3-url"),
+		viper.GetString("region"),
+		viper.GetString("access-key"),
+		viper.GetString("secret-key"))
 
-	// This is how you set up a basic Echo router
+	api := controllers.NewApp(db, log, s3Client)
+
 	e := echo.New()
-	// Log all requests
 	e.Use(echomiddleware.Logger())
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	e.Use(middleware.OapiRequestValidator(swagger))
+
+	//e.Use(middleware.OapiRequestValidator(swagger))
 
 	wapper := routers.ServerInterfaceWrapper{Handler: api}
 	e.GET("/v1/roomtype", wapper.GetAllRoomType, testMiddleware)
+	e.POST("/v1/roomtype/upload", wapper.UploadRoomTypePhotos)
 
-	// And we serve HTTP until the world ends.
 	log.Fatalln(e.Start(net.JoinHostPort("0.0.0.0", viper.GetString("port"))))
 }
 

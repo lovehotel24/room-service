@@ -5,6 +5,9 @@
 ### get all room type
 GET http://localhost:8082/v1/roomtype
 
+### upload room photo to s3
+
+
 ### create a room type
 POST http://localhost:8082/v1/roomtype
 Content-Type: application/json
@@ -13,8 +16,9 @@ Content-Type: application/json
   "name": "double",
   "description": "basic room",
   "photo": [
-    "https://www.a.com",
-    "https://www.b.com"
+    "http://localhost:9000/room/a.png",
+    "http://localhost:9000/room/b.png",
+    "http://localhost:9000/room/c.png"
   ],
   "price": 1.14
 }

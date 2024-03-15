@@ -153,20 +153,20 @@ paths:
                 $ref: '#/components/schemas/Error'
   /v1/roomtype/upload:
     post:
+      summary: "Upload Room Type Photos"
+      operationId: "uploadRoomTypePhotos"
       requestBody:
         content:
           multipart/form-data:
             schema:
-              additionalProperties: false
+              type: object
               properties:
                 photos:
                   type: array
                   items:
                     type: string
                     format: binary
-            encoding:
-              photos:
-                contentType: image/png, image/jpeg
+
       responses:
         "201":
           description: "Photo uploaded successfully"

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -11,15 +12,15 @@ import (
 type API struct {
 	DB  *gorm.DB
 	Log *logrus.Logger
+	S3  *s3.Client
 }
 
-func (a API) PostV1RoomtypeUpload(ctx echo.Context) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func NewApp(db *gorm.DB, log *logrus.Logger) *API {
-	return &API{DB: db, Log: log}
+func NewApp(db *gorm.DB, log *logrus.Logger, s3 *s3.Client) *API {
+	return &API{
+		DB:  db,
+		Log: log,
+		S3:  s3,
+	}
 }
 
 func sendError(ctx echo.Context, code int, message string) error {

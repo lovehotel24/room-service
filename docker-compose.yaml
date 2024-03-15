@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-03-15T01-07-19Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minioTopSecret
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myBucket http://localhost:9000 minio minioTopSecret;
+      /usr/bin/mc rm -r --force myBucket/room || true;
+      /usr/bin/mc mb myBucket/room;
+      /usr/bin/mc policy download myBucket/room;
+      exit 0;
+      "
+
+volumes:
+  minio_data:
