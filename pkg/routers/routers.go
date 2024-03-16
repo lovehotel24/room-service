@@ -7,7 +7,7 @@ import (
 )
 
 func RouterV1(e *echo.Echo, api *controllers.API) {
-	wrapper := ServerInterfaceWrapper{Handler: api}
+	wrapper := controllers.ServerInterfaceWrapper{Handler: api}
 	e.GET("/v1/room", wrapper.GetAllRoom)
 	e.POST("/v1/room", wrapper.CreateRoom)
 	e.DELETE("/v1/room/:RoomId", wrapper.DeleteRoomById)

@@ -11,12 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
-
-	"github.com/lovehotel24/room-service/pkg/routers"
 )
 
-func (a API) GetAllRoomType(ctx echo.Context, params routers.GetAllRoomTypeParams) error {
-	var roomType []routers.RoomType
+func (a API) GetAllRoomType(ctx echo.Context, params GetAllRoomTypeParams) error {
+	var roomType []RoomType
 
 	limit := 10
 	offSet := 1
@@ -36,8 +34,8 @@ func (a API) GetAllRoomType(ctx echo.Context, params routers.GetAllRoomTypeParam
 	return ctx.JSON(http.StatusOK, roomType)
 }
 
-func (a API) CreateRoomType(ctx echo.Context, params routers.CreateRoomTypeParams) error {
-	var roomType routers.RoomType
+func (a API) CreateRoomType(ctx echo.Context, params CreateRoomTypeParams) error {
+	var roomType RoomType
 
 	if err := ctx.Bind(&roomType); err != nil {
 		a.Log.WithError(err).Errorf("failed to bind room type: %s", err)
@@ -53,7 +51,7 @@ func (a API) CreateRoomType(ctx echo.Context, params routers.CreateRoomTypeParam
 }
 
 func (a API) DeleteRoomTypeById(ctx echo.Context, roomTypeId string) error {
-	var roomType routers.RoomType
+	var roomType RoomType
 	if err := a.DB.Where("id = ?", roomTypeId).Delete(&roomType).Error; err != nil {
 		a.Log.WithError(err).Errorf("failed to delete room type: %s", err)
 		return sendError(ctx, http.StatusBadRequest, "failed to delete room type")
@@ -73,7 +71,7 @@ func (a API) GetRoomTypeById(ctx echo.Context, roomTypeId string) error {
 }
 
 func (a API) UpdateRoomTypeById(ctx echo.Context, roomTypeId string) error {
-	var requestRT routers.RoomType
+	var requestRT RoomType
 	if err := ctx.Bind(&requestRT); err != nil {
 		a.Log.WithError(err).Errorf("failed to bind room type: %s", err)
 		return sendError(ctx, http.StatusBadRequest, "invalid input data")
