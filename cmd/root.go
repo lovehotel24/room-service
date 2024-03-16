@@ -51,7 +51,7 @@ func init() {
 	rootCmd.Flags().String("secret-key", "minioTopSecret", "AWS secret key id")
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
-	viper.SetEnvPrefix("book")
+	viper.SetEnvPrefix("room")
 	viper.BindPFlag("pg-user", rootCmd.Flags().Lookup("pg-user"))
 	viper.BindPFlag("pg-pass", rootCmd.Flags().Lookup("pg-pass"))
 	viper.BindPFlag("pg-host", rootCmd.Flags().Lookup("pg-host"))
