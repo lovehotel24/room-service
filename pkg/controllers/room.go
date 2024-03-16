@@ -6,12 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-
-	"github.com/lovehotel24/room-service/pkg/routers"
 )
 
-func (a API) GetAllRoom(ctx echo.Context, params routers.GetAllRoomParams) error {
-	var rooms []routers.Room
+func (a API) GetAllRoom(ctx echo.Context, params GetAllRoomParams) error {
+	var rooms []Room
 
 	limit := 10
 	offSet := 1
@@ -31,8 +29,8 @@ func (a API) GetAllRoom(ctx echo.Context, params routers.GetAllRoomParams) error
 	return ctx.JSON(http.StatusOK, rooms)
 }
 
-func (a API) CreateRoom(ctx echo.Context, params routers.CreateRoomParams) error {
-	var room routers.Room
+func (a API) CreateRoom(ctx echo.Context, params CreateRoomParams) error {
+	var room Room
 
 	if err := ctx.Bind(&room); err != nil {
 		a.Log.WithError(err).Errorf("failed to bind room: %s", err)
@@ -53,7 +51,7 @@ func (a API) CreateRoom(ctx echo.Context, params routers.CreateRoomParams) error
 }
 
 func (a API) DeleteRoomById(ctx echo.Context, roomId string) error {
-	var room routers.Room
+	var room Room
 	if err := a.DB.Where("id = ?", roomId).Delete(&room).Error; err != nil {
 		a.Log.WithError(err).Errorf("failed to delete room: %s", err)
 		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("failed to delete room. details: %s", err))
@@ -73,7 +71,7 @@ func (a API) GetRoomById(ctx echo.Context, roomId string) error {
 }
 
 func (a API) UpdateRoomById(ctx echo.Context, roomId string) error {
-	var requestRoom routers.Room
+	var requestRoom Room
 	if err := ctx.Bind(&requestRoom); err != nil {
 		a.Log.WithError(err).Errorf("failed to bind room: %s", err)
 		return sendError(ctx, http.StatusBadRequest, fmt.Sprintf("invalid input data. details: %s", err))

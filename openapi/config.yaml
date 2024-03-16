@@ -1,7 +1,7 @@
-package: routers
+package: controllers
 generate:
   echo-server: true
   strict-server: true
   models: true
   embedded-spec: true
-output: ../pkg/routers/room.go
+output: ../pkg/controllers/api.gen.go

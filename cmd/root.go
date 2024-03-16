@@ -43,7 +43,7 @@ func init() {
 	rootCmd.Flags().String("pg-db", "postgres", "postgres database name")
 	rootCmd.Flags().Bool("pg-ssl", false, "postgres server ssl mode on or not")
 	rootCmd.Flags().String("port", "8082", "port for test HTTP server")
-	rootCmd.Flags().String("grpc-port", "50051", "booking service grpc port")
+	rootCmd.Flags().String("grpc-host", ":50051", "grpc server to connect")
 	rootCmd.Flags().String("s3-url", "http://localhost:9000", "AWS S3 endpoint url")
 	rootCmd.Flags().String("region", "us-east-1", "AWS Region for S3")
 	rootCmd.Flags().String("bucket", "room", "AWS S3 bucket name for room photos")
@@ -65,6 +65,7 @@ func init() {
 	viper.BindPFlag("bucket", rootCmd.Flags().Lookup("bucket"))
 	viper.BindPFlag("access-key", rootCmd.Flags().Lookup("access-key"))
 	viper.BindPFlag("secret-key", rootCmd.Flags().Lookup("secret-key"))
+	viper.BindPFlag("grpc-host", rootCmd.Flags().Lookup("grpc-host"))
 	viper.AutomaticEnv()
 }
 
@@ -96,6 +97,7 @@ func runCommand(cmd *cobra.Command, args []string) {
 	db, err := configs.NewDB(dbConf)
 	if err != nil {
 		log.WithError(err).Error("failed to connect db")
+		os.Exit(1)
 	}
 
 	err = configs.Migrate(db)
@@ -108,23 +110,21 @@ func runCommand(cmd *cobra.Command, args []string) {
 		viper.GetString("access-key"),
 		viper.GetString("secret-key"))
 
-	api := controllers.NewApp(db, log, s3Client)
+	userClient, err := configs.NewGrpcUserService(viper.GetString("grpc-host"))
+	if err != nil {
+		log.WithError(err).Error("failed to connect GRPC user service")
+		os.Exit(1)
+	}
+
+	api := controllers.NewApp(db, log, s3Client, userClient)
 
 	e := echo.New()
+
 	e.Use(echomiddleware.Logger())
 
 	//e.Use(middleware.OapiRequestValidator(swagger))
 
-	wapper := routers.ServerInterfaceWrapper{Handler: api}
-	e.GET("/v1/roomtype", wapper.GetAllRoomType, testMiddleware)
-	e.POST("/v1/roomtype/upload", wapper.UploadRoomTypePhotos)
+	routers.RouterV1(e, api)
 
 	log.Fatalln(e.Start(net.JoinHostPort("0.0.0.0", viper.GetString("port"))))
-}
-
-func testMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		logrus.Info("test middleware")
-		return next(c)
-	}
 }
